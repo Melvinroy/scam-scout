@@ -2,7 +2,7 @@
   "name": "scam-scout",
   "version": "0.9.0",
   "private": true,
-  "description": "Scam Scout — cited open-web investigations of merchants, websites, phones and payees.",
+  "description": "Scam Scout \u2014 cited open-web investigations of merchants, websites, phones and payees.",
   "license": "MIT",
   "engines": {
     "node": "22.x"
@@ -15,7 +15,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "captures:promote": "tsx scripts/promote-capture.ts"
+    "captures:promote": "tsx scripts/promote-capture.ts",
+    "prebuild": "node scripts/release-gate.mjs",
+    "postbuild": "node scripts/release-gate.mjs"
   },
   "dependencies": {
     "@react-three/drei": "10.7.9",

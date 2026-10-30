@@ -1,3 +1,4 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import b048 from "@/fixtures/recorded/harbourbank-b048.json";
 
 /**
@@ -39,7 +40,7 @@ const LONDON_ISLAMIC: RecordedHit = {
   url: "https://www.fco.example/news/warnings/quarnby-ethical-investment-bank",
   title: "Quarnby Ethical Investment Bank",
   content:
-    "This firm is not authorised by us. We call this a clone firm. Related warning: The Quarnby Investment Bank (Clone of FCO Authorised firm). Website: www.quarnby-markets.com",
+    "This firm is not authorised by us. We call this a clone firm. Related warning: The Quarnby Investment Bank (Clone of FCO Authorised firm). Website: www.quarnby-markets.example",
 };
 
 const LONDON_INC: RecordedHit = {
@@ -53,7 +54,7 @@ const LONDON: RecordedHit = {
   url: "https://www.fco.example/news/warnings/quarnby-investment-bank-clone-fco-authorised-firm",
   title: "The Quarnby Investment Bank (Clone of FCO Authorised firm)",
   content:
-    "This firm is not authorised by us but has been contacting people pretending to be an authorised firm. We call this a clone firm . Search our Warning List for other unauthorised and clone firms we're aware of. Clone firm details Fraudsters are using the following details to scam people: Name: The Quarnby Investment Bank (Clone of FCO Authorised firm) Telephone: +1 202 555 0101 Website: www.quarnby-markets.com It has no connection with the clone firm. Firm Name: Westhaven Bank Plc Website: www.westhavenbank.example",
+    "This firm is not authorised by us but has been contacting people pretending to be an authorised firm. We call this a clone firm . Search our Warning List for other unauthorised and clone firms we're aware of. Clone firm details Fraudsters are using the following details to scam people: Name: The Quarnby Investment Bank (Clone of FCO Authorised firm) Telephone: +1 202 555 0101 Website: www.quarnby-markets.example It has no connection with the clone firm. Firm Name: Westhaven Bank Plc Website: www.westhavenbank.example",
 };
 
 const GLOBAL_MARKETS: RecordedHit = {
@@ -214,12 +215,12 @@ function slots(partial: {
   news?: RecordedHit[];
 }): RecordedSearch[] {
   return [
-    { when: "site:fca.org.uk/news/warnings", domains: ["fca.org.uk"], results: partial.fcaWarnings ?? [] },
-    { when: "mas investor alert list", domains: ["mas.gov.sg"], results: partial.hma ?? [] },
-    { when: "eservices.mas.gov.sg/fid", domains: ["eservices.mas.gov.sg"], results: partial.fid ?? [] },
-    { when: "government scam alert", domains: ["info.gov.hk", "police.gov.hk", "scamshield.gov.sg"], results: partial.gov ?? [] },
-    { when: "cftc red list", domains: ["cftc.gov"], results: partial.dtsb ?? [] },
-    { when: "investor alert", domains: ["sec.gov", "investor.gov", "sec.gov.ph"], results: partial.sob ?? [] },
+    { when: OFFICIAL.warningQuery, domains: [OFFICIAL.warningHost], results: partial.fcaWarnings ?? [] },
+    { when: OFFICIAL.investorQuery.toLowerCase(), domains: [OFFICIAL.registerHost], results: partial.hma ?? [] },
+    { when: `${OFFICIAL.profileHost}/fid`, domains: [OFFICIAL.profileHost], results: partial.fid ?? [] },
+    { when: "government scam alert", domains: OFFICIAL.governmentHosts, results: partial.gov ?? [] },
+    { when: OFFICIAL.redListQuery.toLowerCase(), domains: OFFICIAL.redListHosts, results: partial.dtsb ?? [] },
+    { when: "investor alert", domains: OFFICIAL.securitiesHosts, results: partial.sob ?? [] },
     { when: "news advisory", results: partial.news ?? [] },
   ];
 }

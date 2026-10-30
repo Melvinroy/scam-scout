@@ -15,7 +15,7 @@ Captured 21 Oct 2026. Last block on the home page. A short closing band sits abo
 
 Two pieces.
 
-The closing band is one line and one action. “Before you pay.” Check now returns to the field at the top. Sign in is the path to a live check. It is not a second form and not a second case file.
+The closing band is one line and one action. “Before you pay.” Check now returns to the field at the top. It is not a second form and not a second case file.
 
 The footer is the site map. The badge and one mission line sit first. Under that, five columns in the same order as the menus: Product, Use cases, Trust & Safety, Playground, Developers. Each column is a colour rule and a list of the same pages. No boxes, no icons, no table.
 

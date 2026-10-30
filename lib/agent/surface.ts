@@ -1,9 +1,9 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import { domainToASCII } from "node:url";
 import { getDomain } from "tldts";
 import type { NormalizedEntity } from "@/lib/types";
 
 export const REGULATOR_HOSTS = [
-  "fco.example", "hma.example", "sob.example", "sob-ph.example", "isocb.example", "dtsb.example", "afo.example", "harbour.example", "notices.harbour.example", "police.harbour.example", "scamguard.example",
   "mas.gov.sg",
   "fca.org.uk",
   "sc.com.my",
@@ -19,13 +19,16 @@ export const REGULATOR_HOSTS = [
   "info.gov.hk",
   "police.gov.hk",
   "scamshield.gov.sg",
-  "alerts.example",
-  "register.example",
 ];
 
-export function isRegulatorHost(domain: string): boolean {
+const REPLAY_REGULATOR_HOSTS = [
+  "fco.example", "hma.example", "sob.example", "sob-ph.example", "isocb.example", "dtsb.example", "afo.example", "harbour.example", "notices.harbour.example", "police.harbour.example", "scamguard.example",
+  "alerts.example", "register.example",
+];
+
+export function isRegulatorHost(domain: string, replay = false): boolean {
   const host = domain.toLowerCase();
-  return REGULATOR_HOSTS.some((item) => host === item || host.endsWith(`.${item}`));
+  return [...REGULATOR_HOSTS, ...(replay ? REPLAY_REGULATOR_HOSTS : [])].some((item) => host === item || host.endsWith(`.${item}`));
 }
 
 /** Defanged warning pages write www[.]example[.]com and https[:]//. Put the dots back before matching. */
@@ -123,20 +126,20 @@ export function isRegulatorNotice(url: string, title: string): boolean {
 }
 
 /** Official National Storage Mechanism filings. An AGM notice is not a warning. */
-export function isStorageArtefact(url: string): boolean {
-  url = classifierUrl(url);
+export function isStorageArtefact(url: string, replay = false): boolean {
+  url = classifierUrl(url, replay);
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
-    if (host === "data.fca.org.uk" || host.endsWith(".data.fca.org.uk")) return true;
+    if (host === OFFICIAL.storageHost || host.endsWith(`.${OFFICIAL.storageHost}`)) return true;
     return /\/nsm\/|national-storage-mechanism/i.test(`${host}${parsed.pathname}`);
   } catch {
-    return /data\.fca\.org\.uk|\/nsm\//i.test(url);
+    return OFFICIAL.storageFilter.test(url);
   }
 }
 
-export function isGovNotice(url: string): boolean {
-  url = classifierUrl(url);
+export function isGovNotice(url: string, replay = false): boolean {
+  url = classifierUrl(url, replay);
   try {
     const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
     return GOV_NOTICE_HOSTS.some((item) => host === item || host.endsWith(`.${item}`));
@@ -150,40 +153,40 @@ export function isAlertListing(url: string): boolean {
 }
 
 /** One institution profile, not the directory index. */
-export function isInstitutionProfile(url: string): boolean {
-  url = classifierUrl(url);
+export function isInstitutionProfile(url: string, replay = false): boolean {
+  url = classifierUrl(url, replay);
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
-    if (host !== "eservices.mas.gov.sg" && !host.endsWith(".eservices.mas.gov.sg")) return false;
+    if (host !== OFFICIAL.profileHost && !host.endsWith(`.${OFFICIAL.profileHost}`)) return false;
     return /\/fid\/institution\/detail\//.test(parsed.pathname.toLowerCase());
   } catch {
-    return /eservices\.mas\.gov\.sg\/fid\/institution\/detail\//i.test(url);
+    return OFFICIAL.profileDetailFilter.test(url);
   }
 }
 
 /** Official FID institution page, or another register page that lists a firm's website. */
-export function isRegisterPage(url: string): boolean {
-  url = classifierUrl(url);
+export function isRegisterPage(url: string, replay = false): boolean {
+  url = classifierUrl(url, replay);
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
     const path = parsed.pathname.toLowerCase();
-    if (host === "eservices.mas.gov.sg" || host.endsWith(".eservices.mas.gov.sg")) return path.includes("/fid/institution/");
-    if (host === "register.example" || host.endsWith(".register.example")) return /financial-institutions|\/firm\//.test(path);
-    if (host.startsWith("register.") && /\/firm\/|financial-institutions|\/fid\//.test(path)) return true;
+    if (host === OFFICIAL.profileHost || host.endsWith(`.${OFFICIAL.profileHost}`)) return path.includes("/fid/institution/");
+    if (replay && (host === "register.example" || host.endsWith(".register.example"))) return /financial-institutions|\/firm\//.test(path);
+    if (isRegulatorHost(host, replay) && host.startsWith("register.") && /\/firm\/|financial-institutions|\/fid\//.test(path)) return true;
     return false;
   } catch {
-    return /eservices\.mas\.gov\.sg\/fid\/institution\//i.test(url);
+    return OFFICIAL.profileFilter.test(url);
   }
 }
 
-export function regulatorPage(url: string): boolean {
+export function regulatorPage(url: string, replay = false): boolean {
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
     const registered = (getDomain(host) || host).toLowerCase();
-    return isRegulatorHost(host) || isRegulatorHost(registered);
+    return isRegulatorHost(host, replay) || isRegulatorHost(registered, replay);
   } catch {
     return false;
   }
@@ -258,10 +261,10 @@ const GENERIC_SLUG = new Set([
 ]);
 
 /** The name token an official institution slug leads with, after its numeric id. 900002-HARBOURBANK-BANK-LTD is harbourbank. */
-export function institutionSlugLabel(url: string): string | null {
+export function institutionSlugLabel(url: string, replay = false): string | null {
   let segment = "";
   try {
-    if (!isInstitutionProfile(url)) return null;
+    if (!isInstitutionProfile(url, replay)) return null;
     segment = new URL(url).pathname.split("/").filter(Boolean).pop() ?? "";
   } catch {
     return null;
@@ -273,8 +276,8 @@ export function institutionSlugLabel(url: string): string | null {
 }
 
 /** The profile slug names this domain's label. harbourbank.com.sg matches HARBOURBANK-BANK-LTD. harbourbank-secure.com.sg does not. */
-export function institutionSlugMatches(url: string, entity: NormalizedEntity): boolean {
-  const label = institutionSlugLabel(url);
+export function institutionSlugMatches(url: string, entity: NormalizedEntity, replay = false): boolean {
+  const label = institutionSlugLabel(url, replay);
   const domain = entity.canonical.domain;
   if (!label || !domain) return false;
   return registrableParts(domain)?.label === label;
@@ -284,8 +287,8 @@ export function institutionSlugMatches(url: string, entity: NormalizedEntity): b
  * Among institution profiles whose slug names the typed label, prefer the profile
  * that is just that name. HARBOURBANK-BANK-LTD beats HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD.
  */
-export function pickInstitutionProfile(urls: string[], entity: NormalizedEntity): string | null {
-  const matches = urls.filter((url) => institutionSlugMatches(url, entity));
+export function pickInstitutionProfile(urls: string[], entity: NormalizedEntity, replay = false): string | null {
+  const matches = urls.filter((url) => institutionSlugMatches(url, entity, replay));
   if (matches.length === 0) return null;
   const specific = (url: string) => {
     let tokens: string[] = [];
@@ -301,24 +304,24 @@ export function pickInstitutionProfile(urls: string[], entity: NormalizedEntity)
 }
 
 /** Directory chrome and the regulator's own links are not the institution's website. */
-export function institutionContactHosts(text: string): string[] {
-  return registerWebsites(text).filter((host) => !isDirectoryChrome(host));
+export function institutionContactHosts(text: string, replay = false): string[] {
+  return registerWebsites(text).filter((host) => !isDirectoryChrome(host, replay));
 }
 
-function isDirectoryChrome(host: string): boolean {
-  const value = classifierUrl(host.toLowerCase());
+function isDirectoryChrome(host: string, replay = false): boolean {
+  const value = classifierUrl(host.toLowerCase(), replay);
   return value.endsWith(".gov.sg") || value.endsWith(".gov.uk") || value.endsWith(".gov.au") || value.endsWith(".gov.hk") || value === "gov.sg";
 }
 
 /** Keep a non-chrome website that sits past the usual quote cap on a long register page. */
-export function registerEvidenceQuote(url: string, content: string, limit = 900): string {
-  if (!isRegisterPage(url) || content.length <= limit) return content.slice(0, limit);
+export function registerEvidenceQuote(url: string, content: string, limit = 900, replay = false): string {
+  if (!isRegisterPage(url, replay) || content.length <= limit) return content.slice(0, limit);
   const matches = [...content.matchAll(/https?:\/\/[^\s<>"')\]]+/gi)];
   const external = matches.find((match) => {
     try {
       const host = new URL(match[0]).hostname.toLowerCase().replace(/^www\./, "");
       const registered = (getDomain(host) || host).toLowerCase();
-      return !isDirectoryChrome(host) && !isDirectoryChrome(registered);
+      return !isDirectoryChrome(host, replay) && !isDirectoryChrome(registered, replay);
     } catch {
       return false;
     }
@@ -351,24 +354,26 @@ function hostOf(value: string): string | null {
 export function countsAsRegulatorWarning(
   hit: { title: string; url: string; content?: string },
   entity: NormalizedEntity,
+  replay = false,
 ): boolean {
-  if (isStorageArtefact(hit.url) || (isPdf(hit.url) && !isRegisterPage(hit.url))) return false;
-  if (isGovNotice(hit.url)) return exactInputIn(`${hit.title}\n${hit.url}\n${hit.content ?? ""}`, entity);
+  if (isStorageArtefact(hit.url, replay) || (isPdf(hit.url) && !isRegisterPage(hit.url, replay))) return false;
+  if (isGovNotice(hit.url, replay)) return exactInputIn(`${hit.title}\n${hit.url}\n${hit.content ?? ""}`, entity);
   if (isAlertListing(hit.url)) {
-    if (/(?:fca\.org\.uk|fco\.example)/i.test(hit.url) && !/\/news\/warnings?\//i.test(hit.url)) return false;
+    if (OFFICIAL.warningHostFilter.test(classifierUrl(hit.url, replay)) && !/\/news\/warnings?\//i.test(hit.url)) return false;
     return exactInTitleOrUrl(hit.title, hit.url, entity) || listsTypedDomain(`${hit.title}\n${hit.content ?? ""}`, entity);
   }
-  if (regulatorPage(hit.url) && isRegulatorNotice(hit.url, hit.title)) {
+  if (regulatorPage(hit.url, replay) && isRegulatorNotice(hit.url, hit.title)) {
     return exactInTitleOrUrl(hit.title, hit.url, entity);
   }
   return false;
 }
 
 /** Fixture aliases use exactly the same page classifiers as official sources. */
-export function classifierUrl(url: string): string {
-  return url.replace(/fco\.example/gi, "fca.org.uk")
-    .replace(/hma\.example/gi, "mas.gov.sg")
-    .replace(/notices\.harbour\.example/gi, "info.gov.hk")
-    .replace(/police\.harbour\.example/gi, "police.gov.hk")
-    .replace(/scamguard\.example/gi, "scamshield.gov.sg");
+export function classifierUrl(url: string, replay = false): string {
+  if (!replay) return url;
+  return url.replace(/fco\.example/gi, OFFICIAL.warningHost)
+    .replace(/hma\.example/gi, OFFICIAL.registerHost)
+    .replace(/notices\.harbour\.example/gi, OFFICIAL.governmentHosts[0])
+    .replace(/police\.harbour\.example/gi, OFFICIAL.governmentHosts[1])
+    .replace(/scamguard\.example/gi, OFFICIAL.governmentHosts[2]);
 }

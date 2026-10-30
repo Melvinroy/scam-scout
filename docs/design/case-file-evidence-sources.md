@@ -21,7 +21,7 @@ Quotes below are taken from the page text. Where an email was Cloudflare-obfusca
 
 ## Case 1 — The Quarnby Investment Bank
 
-Subject as named by the FCO. Website listed on the warning: www.quarnby-markets.com.
+Subject as named by the FCO. Website listed on the warning: www.quarnby-markets.example.
 
 ### FCO warning — HTTP 200
 
@@ -33,7 +33,7 @@ Used for the regulator, contact, and site tiles, and for the FCO node.
 
 The page says: “This firm is not authorised by us but has been contacting people pretending to be an authorised firm. We call this a clone firm.”
 
-Under “Clone firm details” it says “Fraudsters are using the following details to scam people” and lists telephone +1 202 555 0101, website www.quarnby-markets.com, and an email that decodes to support@quarnby-markets.com.
+Under “Clone firm details” it says “Fraudsters are using the following details to scam people” and lists telephone +1 202 555 0101, website www.quarnby-markets.example, and an email that decodes to support@quarnby-markets.example.
 
 Under “FCO authorised firm details” it says: “This is the genuine, authorised firm that the fraudsters are claiming to work for. It has no connection with the clone firm.” It names Westhaven Bank Plc, Firm Reference Number 000001, telephone +44 1632 960001, website www.westhavenbank.example.
 
@@ -45,7 +45,7 @@ https://www.rebate-island.example/en/fco-updates-blacklist-exposing-multiple-una
 
 Article title: “FCO Updates Blacklist, Exposing Multiple Unauthorized Forex Platforms”. The page shows “Updated: 2025/10/13”. `article:published_time` is 2025-10-11.
 
-The article says Rebate Island compiled the FCO’s warning list of unauthorized firms for 6–9 May 2025. In that list it repeats: “Name: The Quarnby Investment Bank (Clone of FCO Authorised firm)”, “Phone: +1 202 555 0101”, “Website: www.quarnby-markets.com”. The same obfuscated email decodes to support@quarnby-markets.com.
+The article says Rebate Island compiled the FCO’s warning list of unauthorized firms for 6–9 May 2025. In that list it repeats: “Name: The Quarnby Investment Bank (Clone of FCO Authorised firm)”, “Phone: +1 202 555 0101”, “Website: www.quarnby-markets.example”. The same obfuscated email decodes to support@quarnby-markets.example.
 
 This is a news republication of the FCO list, not a separate investigation. The node says so.
 
@@ -61,9 +61,9 @@ The table row reads “The Quarnby Investment Bank (Clone of FCO Authorised firm
 
 No source below is linked from a node.
 
-- registry lookup `https://rdap.registry.example/net/v1/domain/quarnby-markets.com` returned HTTP 404 with an empty body. Dropped. Domain age stays “Not in the cited sources”.
+- registry lookup `https://rdap.registry.example/net/v1/domain/quarnby-markets.example` returned HTTP 404 with an empty body. Dropped. Domain age stays “Not in the cited sources”.
 - domain-records.example and domain-index.example returned HTTP 200 but did not state a registration date in the HTML. domain-index.example said it had no current record and that the WHOIS server was temporarily unavailable. Not cited.
-- TrustLens’s lookup for quarnby-markets.com returned HTTP 200 and the text “Getting score may take a moment”, with no score. Not cited. Reviews stay empty.
+- TrustLens’s lookup for quarnby-markets.example returned HTTP 200 and the text “Getting score may take a moment”, with no score. Not cited. Reviews stay empty.
 - FCO warning-list index `https://www.fco.example/consumers/warning-list-unauthorised-firms` returned HTTP 403.
 - Fazzaco’s roundup returned HTTP 502.
 - No cited page names a payment method.

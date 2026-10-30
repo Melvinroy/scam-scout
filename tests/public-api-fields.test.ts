@@ -16,6 +16,8 @@ import { POST as invites } from "@/app/api/invites/route";
 import { NextRequest } from "next/server";
 import { GET as authGet, POST as authPost } from "@/app/api/auth/[...nextauth]/route";
 import { publicPayload } from "@/lib/replay/public";
+import { readFileSync } from "node:fs";
+import { trademarkMatches } from "@/scripts/trademark-scan.mjs";
 
 const banned = /budget|exhausted|credits|tokens?|usd|cost|spend|quota|role|liveOwner|liveConfigured|live_invite_only|model_unpriced|turnstile_|dev_bypass|limit/i;
 function scan(value: unknown): void {
@@ -67,6 +69,21 @@ it("sanitizes cached replay SSE on both replay branches", async () => {
     const response = await cases(request("cases", body));
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     for (const line of (await response.text()).split("\n").filter((line) => line.startsWith("data: "))) scan(JSON.parse(line.slice(6)));
+  }
+});
+it("keeps prohibited names and query previews out of every recorded API and SSE response", async () => {
+  const cache = await vi.importActual<typeof import("@/lib/replay/cache")>("@/lib/replay/cache");
+  const terms = readFileSync("scripts/trademark-denylist.txt", "utf8").split(/\r?\n/).filter((term) => term && !term.startsWith("#"));
+  for (const { id } of cache.presetMeta()) {
+    mocks.lookup.mockResolvedValue(await cache.getReplay(id));
+    const json = await replay(request(`replays/${id}`), { params: Promise.resolve({ id }) });
+    const sse = await cases(request("cases", { replayId: id }));
+    expect(json.status).toBe(200);
+    expect(sse.headers.get("content-type")).toContain("text/event-stream");
+    for (const body of [await json.text(), await sse.text()]) {
+      expect(trademarkMatches(body, terms), id).toEqual([]);
+      expect(body).not.toMatch(/args_preview|"query"/);
+    }
   }
 });
 it("stops replay GET floods before further store lookups", async () => {

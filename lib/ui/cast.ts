@@ -27,7 +27,7 @@ export function riskColor(level?: string): string {
   if (level === "High") return "#c4233a";
   if (level === "Medium") return "#8a5a00";
   if (level === "Low") return "#0c7a43";
-  return "#8b939c";
+  return "#626b75";
 }
 
 export const TYPOLOGY_LABEL: Record<string, string> = {

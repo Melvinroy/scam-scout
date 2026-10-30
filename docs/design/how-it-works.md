@@ -2,7 +2,7 @@
 
 Captured 21 Oct 2026. Second block on the home page, under the approved hero. The words are four moves. The result is the answer sheet in `docs/design/result-dashboard.md`. The pinned scroll story is retired.
 
-The case is the approved Quarnby Investment Bank fixture (`quarnby-investment-bank` in `lib/ui/public-evidence.ts`): `quarnby-markets.com`, advisory 75, High risk, and the three sources already on the hero (FCO, Rebate Island, Consumer Watch Forum). Nothing in this section is a new claim.
+The case is the approved Quarnby Investment Bank fixture (`quarnby-investment-bank` in `lib/ui/public-evidence.ts`): `quarnby-markets.example`, advisory 75, High risk, and the three sources already on the hero (FCO, Rebate Island, Consumer Watch Forum). Nothing in this section is a new claim.
 
 ## Product references
 

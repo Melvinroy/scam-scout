@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 // The kill-switch server: live checks off, so pages stay on recorded cases and nothing calls a provider.
 const SITE = "http://127.0.0.1:3212";
-const PAGES = ["/", "/demo", "/sign-in", "/case/quantum-yield", "/no-such-page"];
+const PAGES = ["/", "/demo", "/sign-in", "/no-such-page"];
 const VIEWPORTS = { desktop: { width: 1280, height: 900 }, mobile: { width: 390, height: 844 } };
 
 test.describe.configure({ mode: "serial" });
@@ -25,14 +25,16 @@ async function seriousA11yIssues(page: Page): Promise<string[]> {
 }
 
 test("every page has no serious or critical accessibility issues, signed out and signed in", async ({ page }) => {
-  for (const path of PAGES) {
+  const { presets }: { presets: Array<{ id: string }> } = await (await page.request.get(`${SITE}/api/replays`)).json();
+  const paths = [...PAGES, ...presets.map(({ id }) => `/case/${id}`)];
+  for (const path of paths) {
     await page.goto(`${SITE}${path}`);
     await expect(page.locator("header.site-header[data-session='out']")).toBeVisible();
     expect(await seriousA11yIssues(page), path).toEqual([]);
   }
   await signInWithUsername(page, "e2e-judge-password");
   await expect(page.locator("header.site-header[data-session='in']")).toBeVisible();
-  for (const path of PAGES) {
+  for (const path of paths) {
     await page.goto(`${SITE}${path}`);
     await expect(page.locator("header.site-header[data-session='in']")).toBeVisible();
     expect(await seriousA11yIssues(page), `${path} signed in`).toEqual([]);

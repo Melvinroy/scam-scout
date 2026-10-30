@@ -54,10 +54,7 @@ export type SpendDecision = {
   reason?: SpendReason;
 };
 
-/**
- * Upper bounds for the required limit settings, not fallbacks.
- * A blank or invalid setting refuses live checks.
- */
+/** Enforced lifetime ceilings. A blank or invalid setting refuses live checks. */
 export const DOCUMENTED_LIMITS = { usd: 13.5, tavilyCredits: 400 } as const;
 /** Stand-in so a caller that omits the daily cap does not trip it inside Redis. */
 const OPEN_DAILY_CAP = 1_000_000_000;

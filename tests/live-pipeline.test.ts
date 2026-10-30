@@ -1,3 +1,4 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import "./helpers/public-dns";
 import { describe, expect, it } from "vitest";
 import { Budget } from "@/lib/agent/budget";
@@ -33,13 +34,13 @@ describe("live pipeline with mocked providers", () => {
         const body = JSON.parse(String(init?.body)) as { query?: string; include_domains?: string[]; search_depth?: string };
         const domains = body.include_domains ?? [];
         const regulator = domains.length > 0 || /investor alert|news\/warnings|warning list|i-scan|red list/i.test(String(body.query));
-        if (domains.includes("\u0066ca.org.uk")) hosts.push("include:\u0066ca.org.uk");
+        if (domains.includes(OFFICIAL.warningHost)) hosts.push(`include:${OFFICIAL.warningHost}`);
         const quoted = String(body.query).match(/"([^"]+)"/)?.[1] ?? "harbourdesk.example";
         return jsonResponse({
           request_id: "req_mock",
           usage: { credits: body.search_depth === "advanced" ? 2 : 1 },
           results: regulator
-            ? [{ url: "https://www.fco.example/news/warnings/harbourdesk-example-clone", title: quoted, content: `${quoted} is not authorised. We call this a clone firm.` }]
+            ? [{ url: `https://www.${OFFICIAL.warningHost}/news/warnings/harbourdesk-example-clone`, title: quoted, content: `${quoted} is not authorised. We call this a clone firm.` }]
             : [],
         });
       }
@@ -95,7 +96,7 @@ describe("live pipeline with mocked providers", () => {
     expect(report.memo).toMatch(/Decision support only/);
     expect(report.costs.nebius_usd).toBeGreaterThan(0);
     expect(hosts.filter((host) => !host.startsWith("include:")).every((host) => host === "api.tavily.com" || host === "rdap.org" || host === "api.tokenfactory.nebius.com")).toBe(true);
-    expect(hosts).toContain("include:\u0066ca.org.uk");
+    expect(hosts).toContain(`include:${OFFICIAL.warningHost}`);
     expect(hosts).toContain("api.tavily.com");
     expect(hosts).toContain("api.tokenfactory.nebius.com");
 
@@ -103,11 +104,11 @@ describe("live pipeline with mocked providers", () => {
     expect(sheet.level).toBe("High");
     expect(sheet.signals.some((signal) => signal.id === "R1")).toBe(true);
     expect(sheet.sources.some((source) => source.quote.includes("clone firm"))).toBe(true);
-    expect(sheet.sources.some((source) => source.url.includes("fco.example"))).toBe(true);
+    expect(sheet.sources.some((source) => source.url.includes(`${OFFICIAL.warningHost}`))).toBe(true);
   });
 
   it("drops a flag whose evidence is missing and keeps a provider failure on the sheet", () => {
-    const evidence = [{ evidence_id: "ev_01", quote: QUOTE, url: "https://www.fco.example/news/warnings/harbourdesk-example-clone", title: "harbourdesk.example", source_domain: "fco.example", source_type: "regulator" }] as Evidence[];
+    const evidence = [{ evidence_id: "ev_01", quote: QUOTE, url: `https://www.${OFFICIAL.warningHost}/news/warnings/harbourdesk-example-clone`, title: "harbourdesk.example", source_domain: `${OFFICIAL.warningHost}`, source_type: "regulator" }] as Evidence[];
     const kept = { signal_id: "R1", title: "Exact match", explanation: "On a warning.", points: 40, weight: 50, evidence_ids: ["ev_01"], confidence: 1, source_reliability: 1, typologies: [], status: "active", hard: true, category: "other" } as RedFlag;
     const dropped = { ...kept, signal_id: "R2", title: "Loose match", evidence_ids: ["ev_missing"], points: 12 };
     const view = {
@@ -196,20 +197,20 @@ describe("live pipeline with mocked providers", () => {
     expect(result.error).toBe("model_network");
   });
 
-  it("scores an FCO clone warning as a hard High signal", () => {
-    expect(classifySource("fco.example", "search_regulator")).toBe("regulator");
-    expect(classifySource("dtsb.example", "search_reports")).toBe("regulator");
-    expect(classifySource("isocb.example", "search_news")).toBe("regulator");
-    expect(classifySource("hma.example", "search_regulator")).toBe("regulator");
+  it("scores an official clone warning as a hard High signal", () => {
+    expect(classifySource(`${OFFICIAL.warningHost}`, "search_regulator")).toBe("regulator");
+    expect(classifySource(`${OFFICIAL.redListHosts[0]}`, "search_reports")).toBe("regulator");
+    expect(classifySource(`${REGULATOR_HOSTS.find((host) => host.endsWith(".org"))}`, "search_news")).toBe("regulator");
+    expect(classifySource(`${OFFICIAL.registerHost}`, "search_regulator")).toBe("regulator");
     const entity = normalizeInput("The Quarnby Investment Bank");
     const drafts = detectSignals({
       entity,
       observations: [{
         action: "search_regulator",
-        url: "https://www.fco.example/news/warnings/quarnby-investment-bank-clone-fco-authorised-firm",
+        url: `https://www.${OFFICIAL.warningHost}/news/warnings/quarnby-investment-bank-clone-fco-authorised-firm`,
         title: "Quarnby Investment Bank (clone of an FCO-authorised firm)",
         text: "This firm is not authorised by the FCO.",
-        sourceDomain: "fco.example",
+        sourceDomain: `${OFFICIAL.warningHost}`,
         sourceType: "regulator",
         evidenceId: "ev_fco",
       }],
@@ -246,17 +247,17 @@ describe("live pipeline with mocked providers", () => {
     expect(disputed.hard_triggers).toContain("R1");
   });
 
-  it("scores the FCO warning title as High and a register hit as a mitigation", () => {
+  it("scores the official warning title as High and a register hit as a mitigation", () => {
     expect(regulatorSearchDomains()).toBe(REGULATOR_HOSTS);
     const entity = normalizeInput(FCO_LONDON_WARNING.name);
     const titled = detectSignals({
       entity,
       observations: [{
         action: "search_regulator",
-        url: FCO_LONDON_WARNING.url,
+        url: FCO_LONDON_WARNING.url.replace("fco.example", OFFICIAL.warningHost),
         title: FCO_LONDON_WARNING.title,
         text: FCO_LONDON_WARNING.title,
-        sourceDomain: "fco.example",
+        sourceDomain: `${OFFICIAL.warningHost}`,
         sourceType: "regulator",
         evidenceId: "ev_title",
       }],
@@ -283,10 +284,10 @@ describe("live pipeline with mocked providers", () => {
       entity,
       observations: [{
         action: "search_regulator",
-        url: "https://www.fco.example/firms/the-quarnby-investment-bank",
+        url: `https://www.${OFFICIAL.warningHost}/firms/the-quarnby-investment-bank`,
         title: FCO_LONDON_WARNING.name,
         text: FCO_LONDON_WARNING.text,
-        sourceDomain: "fco.example",
+        sourceDomain: `${OFFICIAL.warningHost}`,
         sourceType: "regulator",
         evidenceId: "ev_text",
       }],
@@ -302,10 +303,10 @@ describe("live pipeline with mocked providers", () => {
       entity: normalizeInput("northgate-markets.example"),
       observations: [{
         action: "search_regulator",
-        url: "https://www.fco.example/news/press-releases/fco-fines-northgate-groups-global-markets-limited",
+        url: `https://www.${OFFICIAL.warningHost}/news/press-releases/fco-fines-northgate-groups-global-markets-limited`,
         title: "FCO fines Northgate Group's global markets business",
         text: "The FCO fined the genuine firm. The search snippet also says northgate-markets.example.",
-        sourceDomain: "fco.example",
+        sourceDomain: `${OFFICIAL.warningHost}`,
         sourceType: "regulator",
         evidenceId: "ev_press",
       }],
@@ -321,10 +322,10 @@ describe("live pipeline with mocked providers", () => {
       entity: normalizeInput("meridianbank.example"),
       observations: [{
         action: "verify_registration",
-        url: "https://register.fco.example/s/firm/meridianbank.example",
+        url: `https://register.${OFFICIAL.warningHost}/s/firm/meridianbank.example`,
         title: "Meridian Bank",
         text: "Authorised and regulated by the FCO. Website: https://meridianbank.example",
-        sourceDomain: "fco.example",
+        sourceDomain: `${OFFICIAL.warningHost}`,
         sourceType: "regulator",
         evidenceId: "ev_reg",
       }],
@@ -341,10 +342,10 @@ describe("live pipeline with mocked providers", () => {
       entity: normalizeInput("harbourbank.com.sg"),
       observations: [{
         action: "search_regulator",
-        url: "https://www.hma.example/regulation/enforcement/financial-institutions-directory.pdf",
+        url: `https://www.${OFFICIAL.registerHost}/regulation/enforcement/financial-institutions-directory.pdf`,
         title: "Financial Institutions Directory",
         text: "Financial Institutions Directory harbourbank.com.sg",
-        sourceDomain: "hma.example",
+        sourceDomain: `${OFFICIAL.registerHost}`,
         sourceType: "regulator",
         evidenceId: "ev_echo",
       }],
@@ -358,10 +359,10 @@ describe("live pipeline with mocked providers", () => {
     expect(echoed.some((draft) => draft.signal_id === "M1" || draft.signal_id === "R1" || draft.signal_id === "S1" || draft.signal_id === "S2")).toBe(false);
     const fidPage = {
       action: "search_regulator",
-      url: "https://eservices.hma.example/fid/institution/detail/900002-HARBOURBANK-BANK-LTD",
+      url: `https://eservices.${OFFICIAL.registerHost}/fid/institution/detail/900002-HARBOURBANK-BANK-LTD`,
       title: "HARBOURBANK BANK LTD.",
       text: "Financial Institutions Directory\nHARBOURBANK BANK LTD.\nIncorporated in Singapore\nDesignated Payment System Settlement Institution\ncontact\nhttp://www.harbourbank.com\n+65 0000 0002",
-      sourceDomain: "eservices.hma.example",
+      sourceDomain: `eservices.${OFFICIAL.registerHost}`,
       sourceType: "regulator" as const,
       evidenceId: "ev_fid",
     };
@@ -398,26 +399,26 @@ describe("live pipeline with mocked providers", () => {
     expect(rankSearchHits([titleOnly], normalizeInput("harbourbank-secure.com.sg"))).toEqual([]);
     expect(rankSearchHits([{ url: fidPage.url, title: fidPage.title, content: fidPage.text }], normalizeInput("northgate-markets.example"))).toEqual([]);
     const captureUrls = [
-      "https://eservices.hma.example/fid/institution/detail/900001-HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD",
-      "https://eservices.hma.example/fid/institution/detail/900002-HARBOURBANK-BANK-LTD",
-      "https://eservices.hma.example/fid/institution/detail/900003-HARBOURBANK-TRUSTEE-LIMITED",
-      "https://eservices.hma.example/fid/institution?term=harbourbank+bank",
+      `https://eservices.${OFFICIAL.registerHost}/fid/institution/detail/900001-HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD`,
+      `https://eservices.${OFFICIAL.registerHost}/fid/institution/detail/900002-HARBOURBANK-BANK-LTD`,
+      `https://eservices.${OFFICIAL.registerHost}/fid/institution/detail/900003-HARBOURBANK-TRUSTEE-LIMITED`,
+      `https://eservices.${OFFICIAL.registerHost}/fid/institution?term=harbourbank+bank`,
     ];
     expect(pickInstitutionProfile(captureUrls, normalizeInput("harbourbank.com.sg"))).toBe(fidPage.url);
     expect(pickInstitutionProfile(captureUrls, normalizeInput("harbourbank-secure.com.sg"))).toBeNull();
     const lateSite = `${"directory ".repeat(120)}http://www.harbourbank.com`;
     expect(registerEvidenceQuote(fidPage.url, lateSite)).toContain("http://www.harbourbank.com");
     expect(registerEvidenceQuote(fidPage.url, lateSite).length).toBeLessThanOrEqual(900);
-    const chromeFirst = `https://www.hma.example/fid ${"directory ".repeat(100)}http://www.harbourbank.com`;
+    const chromeFirst = `https://www.${OFFICIAL.registerHost}/fid ${"directory ".repeat(100)}http://www.harbourbank.com`;
     const windowed = registerEvidenceQuote(fidPage.url, chromeFirst);
     expect(windowed).toContain("http://www.harbourbank.com");
-    expect(windowed.startsWith("https://www.hma.example/fid")).toBe(false);
+    expect(windowed.startsWith(`https://www.${OFFICIAL.registerHost}/fid`)).toBe(false);
     const captured = {
       action: "extract_pages" as const,
       url: fidPage.url,
       title: "Financial Institutions Directory",
       text: "Financial Institutions Directory\n# HARBOURBANK BANK LTD.\n## Licence Type/Status\n### Local Bank\n### Chairman\nPeter",
-      sourceDomain: "hma.example",
+      sourceDomain: `${OFFICIAL.registerHost}`,
       sourceType: "regulator" as const,
       evidenceId: "ev_read",
     };
@@ -454,7 +455,7 @@ describe("live pipeline with mocked providers", () => {
     }).some((draft) => draft.signal_id === "M1")).toBe(false);
     const digital = {
       ...fidPage,
-      url: "https://eservices.hma.example/fid/institution/detail/900001-HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD",
+      url: `https://eservices.${OFFICIAL.registerHost}/fid/institution/detail/900001-HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD`,
       evidenceId: "ev_digital",
       text: "Licence Type/Status\nLocal Bank\nhttp://www.harbourbank.com",
     };
@@ -512,14 +513,14 @@ describe("live pipeline with mocked providers", () => {
       action: "search_news" as const,
       url: `https://${domain}/sob-flags-fake-shopwisp-example`,
       title: "SOB flags fake SHOPWISP.EXAMPLE platform",
-      text: "The Securities Oversight Board (SOB) flags SHOPWISP.EXAMPLE as fraudulent.",
+      text: `${OFFICIAL.warningName} flags SHOPWISP.EXAMPLE as fraudulent.`,
       sourceDomain: domain,
       sourceType: "news" as const,
       evidenceId: id,
     });
     const oneReport = detectSignals({
       entity: normalizeInput("SHOPWISP.EXAMPLE"),
-      observations: [pressPage("daily quay.net", "ev_news")],
+      observations: [pressPage("daily-quay.example", "ev_news")],
       mapUrls: [],
       ownSiteText: "",
       ageDays: null,
@@ -539,7 +540,7 @@ describe("live pipeline with mocked providers", () => {
     expect(oneVerdict.hard_triggers).not.toContain("R3");
     const twoReport = detectSignals({
       entity: normalizeInput("SHOPWISP.EXAMPLE"),
-      observations: [pressPage("daily quay.net", "ev_news"), pressPage("daily quay.net", "ev_same"), pressPage("philstar.com", "ev_other")],
+      observations: [pressPage("daily-quay.example", "ev_news"), pressPage("daily-quay.example", "ev_same"), pressPage("second-paper.example", "ev_other")],
       mapUrls: [],
       ownSiteText: "",
       ageDays: null,
@@ -636,9 +637,9 @@ describe("live pipeline with mocked providers", () => {
       evidence: [{
         evidence_id: "ev_fco",
         kind: "web_page",
-        url: "https://www.fco.example/news/warnings/quarnby-investment-bank-clone-fco-authorised-firm",
+        url: `https://www.${OFFICIAL.warningHost}/news/warnings/quarnby-investment-bank-clone-fco-authorised-firm`,
         title: "Quarnby Investment Bank",
-        source_domain: "fco.example",
+        source_domain: `${OFFICIAL.warningHost}`,
         source_type: "regulator",
         retrieved_at: "",
         tool: { name: "search_regulator", credits: 2 },

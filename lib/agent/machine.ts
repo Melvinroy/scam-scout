@@ -1,9 +1,10 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import { createHash, randomBytes } from "node:crypto";
 import { Budget } from "@/lib/agent/budget";
 import { adoptedDomain } from "@/lib/agent/adopt";
 import { classifySource, detectSignals, independentSources, regulatorBeacon, regulatorSearchDomains, sourceDomain, type DetectContext, type Observation } from "@/lib/agent/detect";
 import { canonicalUrl, rankSearchHits } from "@/lib/agent/rank";
-import { isInstitutionProfile, listsTypedDomain, pickInstitutionProfile, registerEvidenceQuote } from "@/lib/agent/surface";
+import { classifierUrl, isInstitutionProfile, listsTypedDomain, pickInstitutionProfile, registerEvidenceQuote } from "@/lib/agent/surface";
 import { quotedSubject, regulatorFloorQueries, skipsOpenWeb } from "@/lib/agent/regulator-queries";
 import { renderMemo } from "@/lib/agent/memo";
 import { mentionsEntity, normalizeInput } from "@/lib/agent/normalize";
@@ -59,6 +60,8 @@ export function applySkippedScreenshot(verdict: Verdict): Verdict {
 }
 
 export async function* runInvestigation(request: RunRequest): AsyncGenerator<AgentEvent, CaseReport, void> {
+  const replay = request.mode === "replay";
+  const deps = { ...request.deps, replay };
   const pending: AgentEvent[] = [];
   let seq = 0;
   const caseId = request.caseId ?? createCaseId();
@@ -144,7 +147,7 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
       const meta = actionMeta(job.action);
       const began = Date.now();
       try {
-        const outcome = await perform(job.action, job.query, entity, request.deps, budget, job.callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`, { includeDomains: job.includeDomains, depth: job.depth });
+        const outcome = await perform(job.action, job.query, entity, deps, budget, job.callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`, { includeDomains: job.includeDomains, depth: job.depth });
         return { ...outcome, action: job.action, callId: job.callId, argsPreview: job.query, destination: meta.destination, job: meta.job, latencyMs: Date.now() - began };
       } catch (error) {
         const message = error instanceof Error ? error.message : "tool_failed";
@@ -174,10 +177,10 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
   if (floorResults.find((item) => item.action === "screenshot")?.extra.skipped) visionSkipped = true;
   yield* flush();
 
-  const profileUrl = registerProfileToRead(floorResults, observations, entity);
+  const profileUrl = registerProfileToRead(floorResults, observations, entity, replay);
   if (profileUrl && budget.credits + 1 <= 8) {
     const profile = await run("extract_pages", profileUrl, async (callId) =>
-      perform("extract_pages", profileUrl, entity, request.deps, budget, callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`),
+      perform("extract_pages", profileUrl, entity, deps, budget, callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`),
     );
     if (profile) acceptResult(profile, { done, observations, evidence, seenUrls, emit, budget });
   }
@@ -185,7 +188,7 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
   if (entity.canonical.domain && mapUrls.length > 0 && budget.tryCredits(2)) {
     const crawl = await run("crawl_site", entity.canonical.url ?? `https://${entity.canonical.domain}`, async (callId) => {
       const response = await request.deps.research.crawl(entity.canonical.url ?? `https://${entity.canonical.domain}`, "refund, contact, licence, terms");
-      return pagesOutcome(response, "crawl_site", callId, entity, () => `ev_${String(++evidenceCount).padStart(2, "0")}`);
+      return pagesOutcome(response, "crawl_site", callId, entity, () => `ev_${String(++evidenceCount).padStart(2, "0")}`, replay);
     });
     if (crawl) acceptResult(crawl, { done, observations, evidence, seenUrls, emit, budget });
   }
@@ -201,14 +204,14 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
       const extra = await run("extract_pages", discovered, async (callId) => {
         if (!budget.tryCredits(1) || budget.tryPages(1) < 1) return emptyOutcome("extract_pages", "budget");
         const response = await request.deps.research.extract([`https://${discovered}/`], "contact refund licence address");
-        return pagesOutcome({ pages: response.pages, credits: response.credits }, "extract_pages", callId, entity, () => `ev_${String(++evidenceCount).padStart(2, "0")}`);
+        return pagesOutcome({ pages: response.pages, credits: response.credits }, "extract_pages", callId, entity, () => `ev_${String(++evidenceCount).padStart(2, "0")}`, replay);
       });
       if (extra) acceptResult(extra, { done, observations, evidence, seenUrls, emit, budget });
     }
   }
 
   const announced = new Set<string>();
-  let flags = collectFlags(observations, evidence, entity, { mapUrls, ageDays, copycats, vision, registrationChecked, quotes });
+  let flags = collectFlags(observations, evidence, entity, { mapUrls, ageDays, copycats, vision, registrationChecked, quotes, replay });
   let noveltyStreak = 0;
   let previousCount = flags.length;
   emitScore(emit, flags, observations, budget, announced);
@@ -256,7 +259,7 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
       stop = { code: "S6", reason: "The case budget is spent." };
       break;
     }
-    const chosen = await maybeLlmAction(request.deps, budget, entity, flags, follow);
+    const chosen = await maybeLlmAction(deps, budget, entity, flags, follow);
     emit("agent.decision", {
       action: chosen.action,
       destination: actionMeta(chosen.action).destination,
@@ -268,7 +271,7 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
     trace.push({ step: trace.length + 1, state: "SELECT", action: chosen.action, reason: chosen.reason, model: request.deps.llm.live ? MODELS.router : "policy" });
     yield* flush();
     const outcome = await run(chosen.action, chosen.query, async (callId) =>
-      perform(chosen.action, chosen.query, entity, request.deps, budget, callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`),
+      perform(chosen.action, chosen.query, entity, deps, budget, callId, () => `ev_${String(++evidenceCount).padStart(2, "0")}`),
     );
     if (outcome) {
       acceptResult(outcome, { done, observations, evidence, seenUrls, emit, budget });
@@ -277,7 +280,7 @@ export async function* runInvestigation(request: RunRequest): AsyncGenerator<Age
       if (outcome.extra.vision) vision = outcome.extra.vision as VisionResult;
     }
     followUps += 1;
-    flags = collectFlags(observations, evidence, entity, { mapUrls, ageDays, copycats, vision, registrationChecked, quotes });
+    flags = collectFlags(observations, evidence, entity, { mapUrls, ageDays, copycats, vision, registrationChecked, quotes, replay });
     const novelty = Math.max(0, flags.length - previousCount);
     previousCount = flags.length;
     noveltyStreak = novelty === 0 ? noveltyStreak + 1 : 0;
@@ -418,7 +421,7 @@ async function perform(
   action: ActionName,
   query: string,
   entity: NormalizedEntity,
-  deps: AgentDeps,
+  deps: AgentDeps & { replay: boolean },
   budget: Budget,
   callId: string,
   nextEvidenceId: () => string,
@@ -440,13 +443,13 @@ async function perform(
       includeDomains,
     });
     budget.addCredits((response.credits ?? estimate) - estimate);
-    return searchOutcome(response, action, callId, entity, nextEvidenceId, query);
+    return searchOutcome(response, action, callId, entity, nextEvidenceId, query, deps.replay);
   }
   if (action === "extract_pages") {
     if (!budget.tryCredits(1) || budget.tryPages(1) < 1) return emptyOutcome(action, "budget");
     const response = await deps.research.extract([query], "contact refund licence address registration");
     budget.addCredits((response.credits ?? 1) - 1);
-    return pagesOutcome(response, action, callId, entity, nextEvidenceId);
+    return pagesOutcome(response, action, callId, entity, nextEvidenceId, deps.replay);
   }
   if (action === "map_site") {
     if (!budget.tryCredits(1)) return emptyOutcome(action, "budget");
@@ -469,7 +472,7 @@ async function perform(
   if (action === "crawl_site") {
     const response = await deps.research.crawl(query, "refund, contact, licence");
     budget.addCredits(response.credits ?? 0);
-    return pagesOutcome(response, action, callId, entity, nextEvidenceId);
+    return pagesOutcome(response, action, callId, entity, nextEvidenceId, deps.replay);
   }
   if (action === "rdap") {
     const rdap = await deps.rdap.lookup(query);
@@ -552,17 +555,18 @@ function searchOutcome(
   entity: NormalizedEntity,
   nextEvidenceId: () => string,
   query: string,
+  replay: boolean,
 ): Omit<ToolResult, "action" | "callId" | "argsPreview" | "destination" | "job" | "latencyMs"> {
   const evidence: Evidence[] = [];
   const observations: Observation[] = [];
   let limited = response.results;
-  if (/site:fca\.org\.uk\/news\/warnings/i.test(query)) {
-    limited = limited.filter((hit) => /(?:fca\.org\.uk|fco\.example)\/news\/warnings\//i.test(hit.url));
+  if (OFFICIAL.warningQueryFilter.test(query)) {
+    limited = limited.filter((hit) => OFFICIAL.warningFilter.test(classifierUrl(hit.url, replay)));
   }
-  if (/eservices\.mas\.gov\.sg\/fid/i.test(query)) {
-    limited = limited.filter((hit) => /eservices\.(?:mas\.gov\.sg|hma\.example)\/fid\/institution\//i.test(hit.url));
+  if (OFFICIAL.profileQueryFilter.test(query)) {
+    limited = limited.filter((hit) => OFFICIAL.profileFilter.test(classifierUrl(hit.url, replay)));
   }
-  const ranked = rankSearchHits(limited, entity);
+  const ranked = rankSearchHits(limited, entity, replay);
   for (const hit of ranked) {
     const id = nextEvidenceId();
     const ev = makeEvidence({
@@ -574,6 +578,7 @@ function searchOutcome(
       action,
       credits: response.credits,
       source: sourceDomain(hit.url),
+      replay,
     });
     evidence.push(ev);
     observations.push(toObservation(ev, action, ev.quote));
@@ -601,6 +606,7 @@ function pagesOutcome(
   callId: string,
   entity: NormalizedEntity,
   nextEvidenceId: () => string,
+  replay: boolean,
 ): Omit<ToolResult, "action" | "callId" | "argsPreview" | "destination" | "job" | "latencyMs"> {
   const pages = "pages" in response ? response.pages : [];
   const evidence: Evidence[] = [];
@@ -613,10 +619,11 @@ function pagesOutcome(
       callId,
       url: page.url,
       title: page.title,
-      quote: registerEvidenceQuote(page.url, page.content),
+      quote: registerEvidenceQuote(page.url, page.content, 900, replay),
       action,
       credits: response.credits,
       source: host || entity.canonical.domain || "",
+      replay,
     });
     evidence.push(ev);
     observations.push(toObservation(ev, action, ev.quote));
@@ -635,9 +642,10 @@ function registerProfileToRead(
   results: Array<{ action: ActionName; extra: Record<string, unknown> }>,
   observations: Observation[],
   entity: NormalizedEntity,
+  replay: boolean,
 ): string | null {
   if (!entity.canonical.domain) return null;
-  if (observations.some((item) => isInstitutionProfile(item.url) && listsTypedDomain(`${item.title}\n${item.text}`, entity, true))) return null;
+  if (observations.some((item) => isInstitutionProfile(item.url, replay) && listsTypedDomain(`${item.title}\n${item.text}`, entity, true))) return null;
   const urls: string[] = [];
   for (const result of results) {
     if (result.action !== "search_regulator") continue;
@@ -645,7 +653,7 @@ function registerProfileToRead(
     if (!Array.isArray(listed)) continue;
     urls.push(...listed.filter((url): url is string => typeof url === "string"));
   }
-  return pickInstitutionProfile(urls, entity);
+  return pickInstitutionProfile(urls, entity, replay);
 }
 
 function emptyOutcome(action: ActionName, error: string) {
@@ -749,10 +757,11 @@ function collectFlags(
   observations: Observation[],
   evidenceItems: Evidence[],
   entity: NormalizedEntity,
-  extras: { mapUrls: string[]; ageDays: number | null; copycats: string[]; vision: VisionResult | null; registrationChecked: boolean; quotes: Map<string, string> },
+  extras: { mapUrls: string[]; ageDays: number | null; copycats: string[]; vision: VisionResult | null; registrationChecked: boolean; quotes: Map<string, string>; replay: boolean },
 ): RedFlag[] {
   const ctx: DetectContext = {
     entity,
+    replay: extras.replay,
     observations,
     mapUrls: extras.mapUrls,
     ownSiteText: ownText(observations, entity),
@@ -889,7 +898,7 @@ export function actionMeta(action: ActionName): { destination: IslandId; job: Jo
   }
 }
 
-function makeEvidence(input: { id: string; callId: string; url: string; title: string; quote: string; action: ActionName; credits: number; source: string; kind?: Evidence["kind"] }): Evidence {
+function makeEvidence(input: { id: string; callId: string; url: string; title: string; quote: string; action: ActionName; credits: number; source: string; replay?: boolean; kind?: Evidence["kind"] }): Evidence {
   const quote = input.quote.slice(0, 900);
   return {
     evidence_id: input.id,
@@ -897,7 +906,7 @@ function makeEvidence(input: { id: string; callId: string; url: string; title: s
     url: input.url,
     title: input.title,
     source_domain: input.source || sourceDomain(input.url),
-    source_type: input.kind === "rdap" ? "rdap" : input.kind === "screenshot" ? "vision" : classifySource(input.source || sourceDomain(input.url), input.action),
+    source_type: input.kind === "rdap" ? "rdap" : input.kind === "screenshot" ? "vision" : classifySource(input.source || sourceDomain(input.url), input.action, input.replay),
     retrieved_at: new Date().toISOString(),
     tool: { name: input.action, credits: input.credits, request_id: input.callId },
     quote,

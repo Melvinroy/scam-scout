@@ -51,7 +51,7 @@ describe("public evidence board", () => {
   });
 
   it("opens the recorded case for those domains and does not invent a payment method", () => {
-    expect(publicCaseFor("https://www.quarnby-markets.com/")?.id).toBe("quarnby-investment-bank");
+    expect(publicCaseFor("https://www.quarnby-markets.example/")?.id).toBe("quarnby-investment-bank");
     expect(publicCaseFor("+1 202 555 0101")?.id).toBe("quarnby-investment-bank");
     expect(publicCaseFor("northgate-markets.example")?.id).toBe("northgate-markets");
     expect(publicCaseFor("quantumyield.example")).toBeUndefined();

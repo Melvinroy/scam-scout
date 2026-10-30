@@ -11,7 +11,7 @@ export function TrustBand() {
             <h2 id="trust-title" className="trust-title">What a case file promises.</h2>
           </div>
           <p className="trust-lede">
-            How to read a result. <a href={`${GITHUB}/security`} className="link text-iris" target="_blank" rel="noreferrer">Security policy</a>
+            How to read a result. <a href={`${GITHUB}/blob/main/SECURITY.md`} className="link text-iris" target="_blank" rel="noreferrer">Security policy</a>
           </p>
         </div>
         <ul className="trust-rail">

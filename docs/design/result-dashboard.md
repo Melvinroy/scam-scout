@@ -2,7 +2,7 @@
 
 Captured 21 Oct 2026. This replaces the pinned scroll story in How it works. The 30/70 split was a sketch. These products were read for the shape of a single check, not copied.
 
-The worked example is still the approved Quarnby Investment Bank fixture: `quarnby-markets.com`, advisory 75, High risk, FCO warning first published 08/05/2025, retrieved 21 Oct 2026. The donut and the bars are that score’s tile points. The grey slice is the part with no cited source. It is not a “safe” share. No time series is drawn, because none of the sources record one.
+The worked example is still the approved Quarnby Investment Bank fixture: `quarnby-markets.example`, advisory 75, High risk, FCO warning first published 08/05/2025, retrieved 21 Oct 2026. The donut and the bars are that score’s tile points. The grey slice is the part with no cited source. It is not a “safe” share. No time series is drawn, because none of the sources record one.
 
 ## What we looked at
 

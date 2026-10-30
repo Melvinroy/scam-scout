@@ -1,3 +1,4 @@
+import { SIGNAL_EXPLANATIONS } from "@/lib/agent/presentation";
 import { getDomain } from "tldts";
 import { mentionsEntity, phoneDigits } from "@/lib/agent/normalize";
 import { isOfficialBrand, lookalikeOf } from "@/lib/agent/lookalike";
@@ -17,6 +18,7 @@ export interface Observation {
 }
 
 export interface DetectContext {
+  replay?: boolean;
   entity: NormalizedEntity;
   observations: Observation[];
   mapUrls: string[];
@@ -30,7 +32,8 @@ export interface DetectContext {
 export { REGULATOR_HOSTS, isRegulatorHost };
 
 const WARNING = /\/warnings?(?:\/|$|\b)|investor alert|warning list|\bred list\b|public alert|not regulated|not registered|not authori[sz]ed|unauthori[sz]ed|clone firm|\bclone of\b|\bclone\b|scam alert|do not deal|blacklist|\bfraudulent\b/i;
-const REGULATOR_NAME = /financial conduct office|\bfco\b|harbour monetary authority|\bhma\b|securities oversight board|\bsob\b|\bisocb\b|\bdtsb\b|harbour post|securities and exchange commission|\bsec\b|financial conduct authority|\bfca\b|monetary authority of singapore|\bmas\b|\basic\b|commodity futures trading commission|\bcftc\b|\biosco\b|hongkong post/i;
+const REPLAY_REGULATOR_NAME = /financial conduct office|\bfco\b|harbour monetary authority|\bhma\b|securities oversight board|\bsob\b|\bisocb\b|\bdtsb\b|harbour post/i;
+const REGULATOR_NAME = /securities and exchange commission|\bsec\b|financial conduct authority|\bfca\b|monetary authority of singapore|\bmas\b|\basic\b|commodity futures trading commission|\bcftc\b|\biosco\b|hongkong post/i;
 const LICENCE = /licen[cs]ed|authori[sz]ed|major payment institution/i;
 /** A directory profile states a status even when the contact URL is below the quote window. */
 const REGISTER_STATUS = /licence type|local bank|designated payment system settlement|recognised market operator|licensed trust company|approved cis trustee/i;
@@ -65,10 +68,10 @@ export function regulatorSearchDomains(): readonly string[] {
   return REGULATOR_HOSTS;
 }
 
-export function classifySource(domain: string, action: string): SourceType {
+export function classifySource(domain: string, action: string, replay = false): SourceType {
   if (action === "rdap") return "rdap";
   if (action === "screenshot") return "vision";
-  if (isRegulatorHost(domain)) return "regulator";
+  if (isRegulatorHost(domain, replay)) return "regulator";
   if (action === "search_news") return "news";
   if (action === "extract_pages" || action === "crawl_site") return "own_site";
   if (/forum|victim|reddit|complaint/i.test(domain)) return "forum";
@@ -76,7 +79,7 @@ export function classifySource(domain: string, action: string): SourceType {
   return "unknown";
 }
 
-/** Names as typed, plus the same name without a leading article, so "The London Investment Bank" matches the FCA title. */
+/** Names as typed, plus the same name without a leading article, so an institution name matches a warning title. */
 function entityNames(entity: NormalizedEntity): string[] {
   const names = entity.canonical.names.map((name) => name.trim()).filter((name) => name.length > 3);
   const bare = names
@@ -105,17 +108,17 @@ function fuzzyToken(text: string, entity: NormalizedEntity): boolean {
   return tokens.some((token) => hay.includes(token));
 }
 
-function licenceRegister(item: Observation, entity: NormalizedEntity, picked: string | null): boolean {
-  if (!isRegisterPage(item.url) || isStorageArtefact(item.url)) return false;
+function licenceRegister(item: Observation, entity: NormalizedEntity, picked: string | null, replay = false): boolean {
+  if (!isRegisterPage(item.url, replay) || isStorageArtefact(item.url, replay)) return false;
   if (isPdf(item.url) && !/\/fid\/institution\//i.test(item.url)) return false;
   const blob = observationText(item);
   if (NEGATION.test(blob) || isWarning(blob)) return false;
   const listed = listsTypedDomain(blob, entity, true);
-  const contacts = institutionContactHosts(blob);
+  const contacts = institutionContactHosts(blob, replay);
   if (contacts.length > 0 && !listed) return false;
-  if (isInstitutionProfile(item.url)) {
+  if (isInstitutionProfile(item.url, replay)) {
     if (!picked || item.url !== picked) return false;
-    return listed || (institutionSlugMatches(item.url, entity) && REGISTER_STATUS.test(blob));
+    return listed || (institutionSlugMatches(item.url, entity, replay) && REGISTER_STATUS.test(blob));
   }
   if (!listed) return false;
   return LICENCE.test(item.text);
@@ -123,21 +126,23 @@ function licenceRegister(item: Observation, entity: NormalizedEntity, picked: st
 
 export function detectSignals(ctx: DetectContext): SignalDraft[] {
   const drafts: SignalDraft[] = [];
-  const obs = ctx.observations;
+  const replay = ctx.replay === true;
+  const obs = ctx.observations.map((item) => ({ ...item, sourceType: classifySource(sourceDomain(item.url), item.action, replay) }));
 
   const regulatorHits = obs.filter((item) => item.sourceType === "regulator" && exactHit(observationText(item), ctx.entity));
   const exactWarnings = obs.filter((item) => {
     if (item.sourceType !== "regulator") return false;
-    return countsAsRegulatorWarning({ title: item.title, url: item.url, content: item.text }, ctx.entity);
+    return countsAsRegulatorWarning({ title: item.title, url: item.url, content: item.text }, ctx.entity, replay);
   });
   const alertExact = exactWarnings.find((item) => exactInTitleOrUrl(item.title, item.url, ctx.entity))
-    ?? exactWarnings.find((item) => isGovNotice(item.url))
+    ?? exactWarnings.find((item) => isGovNotice(item.url, replay))
     ?? exactWarnings[0];
   const pickedProfile = pickInstitutionProfile(
-    obs.filter((item) => isInstitutionProfile(item.url)).map((item) => item.url),
+    obs.filter((item) => isInstitutionProfile(item.url, replay)).map((item) => item.url),
     ctx.entity,
+    replay,
   );
-  const licenceHit = obs.find((item) => item.sourceType === "regulator" && licenceRegister(item, ctx.entity, pickedProfile));
+  const licenceHit = obs.find((item) => item.sourceType === "regulator" && licenceRegister(item, ctx.entity, pickedProfile, replay));
   const alertFuzzy = regulatorHits.find((item) => isWarning(observationText(item)) && fuzzyToken(observationText(item), ctx.entity) && !exactHit(observationText(item), ctx.entity));
 
   if (alertExact) {
@@ -152,10 +157,10 @@ export function detectSignals(ctx: DetectContext): SignalDraft[] {
     obs.filter((item) => {
       if (item.sourceType === "regulator" || item.sourceType === "own_site") return false;
       if (item.action !== "search_news" && item.action !== "search_reports") return false;
-      if (isStorageArtefact(item.url) || isPdf(item.url) || isBrandPressRelease(item.url)) return false;
+      if (isStorageArtefact(item.url, replay) || isPdf(item.url) || isBrandPressRelease(item.url)) return false;
       if (!exactInTitleOrUrl(item.title, item.url, ctx.entity)) return false;
       const blob = observationText(item);
-      if (!REGULATOR_NAME.test(blob)) return false;
+      if (!REGULATOR_NAME.test(blob) && !(replay && REPLAY_REGULATOR_NAME.test(blob))) return false;
       return isWarning(blob) || /watchlist|watch list|\bflags\b|\bfake\b|impersonat/i.test(blob);
     }),
   );
@@ -246,7 +251,7 @@ export function detectSignals(ctx: DetectContext): SignalDraft[] {
   if (ctx.copycats.length > 0) {
     const hit = obs.find((item) => item.action === "find_copycats") ?? obs[0];
     if (hit) {
-      drafts.push(draft("S5", 0.8, 0.7, [hit.evidenceId], `Other domains share distinctive wording: ${ctx.copycats.join(", ")}.`, hit.text));
+      drafts.push(draft("S5", 0.8, 0.7, [hit.evidenceId], SIGNAL_EXPLANATIONS.S5, hit.text));
     }
   }
 
@@ -254,13 +259,13 @@ export function detectSignals(ctx: DetectContext): SignalDraft[] {
     const official = isOfficialBrand(ctx.entity.canonical.domain);
     if (official) {
       const home = obs.find((item) => item.action === "extract_pages") ?? obs[0];
-      drafts.push(draft("M4", 1, 1, home ? [home.evidenceId] : [], `${official.name} is the official domain on the comparison list.`, home?.text ?? official.domain));
+      drafts.push(draft("M4", 1, 1, home ? [home.evidenceId] : [], SIGNAL_EXPLANATIONS.M4, home?.text ?? official.domain));
     } else {
       const brand = lookalikeOf(ctx.entity.canonical.domain);
       if (brand) {
         const home = obs.find((item) => item.action === "extract_pages") ?? obs[0];
         if (home) {
-          drafts.push(draft("S6", 0.95, 1, [home.evidenceId], `The domain imitates ${brand.domain} (${brand.name}).`, home.text));
+          drafts.push(draft("S6", 0.95, 1, [home.evidenceId], SIGNAL_EXPLANATIONS.S6, home.text));
         }
       }
     }
@@ -269,13 +274,13 @@ export function detectSignals(ctx: DetectContext): SignalDraft[] {
   if (ctx.vision && !ctx.vision.skipped && !ctx.vision.error) {
     const shot = obs.find((item) => item.action === "screenshot");
     if (shot && ctx.vision.impersonation && (ctx.vision.impersonationKind === "bank" || ctx.vision.impersonationKind === "government")) {
-      drafts.push(draft("V1", ctx.vision.confidence, 0.8, [shot.evidenceId], ctx.vision.finding, ctx.vision.finding));
+      drafts.push(draft("V1", ctx.vision.confidence, 0.8, [shot.evidenceId], SIGNAL_EXPLANATIONS.V1, ctx.vision.finding));
     }
     if (shot && ctx.vision.stockPhoto) {
-      drafts.push(draft("V2", ctx.vision.confidence, 0.8, [shot.evidenceId], ctx.vision.finding, ctx.vision.finding));
+      drafts.push(draft("V2", ctx.vision.confidence, 0.8, [shot.evidenceId], SIGNAL_EXPLANATIONS.V2, ctx.vision.finding));
     }
     if (shot && ctx.vision.fakeBadges) {
-      drafts.push(draft("V3", Math.min(0.9, ctx.vision.confidence), 0.8, [shot.evidenceId], ctx.vision.finding, ctx.vision.finding));
+      drafts.push(draft("V3", Math.min(0.9, ctx.vision.confidence), 0.8, [shot.evidenceId], SIGNAL_EXPLANATIONS.V3, ctx.vision.finding));
     }
   }
 

@@ -45,10 +45,10 @@ export const PUBLIC_CASES: PublicCase[] = [
     id: "quarnby-investment-bank",
     chip: "Investment clone",
     subject: "The Quarnby Investment Bank",
-    sample: "quarnby-markets.com",
+    sample: "quarnby-markets.example",
     matches: [
-      "quarnby-markets.com",
-      "www.quarnby-markets.com",
+      "quarnby-markets.example",
+      "www.quarnby-markets.example",
       "the quarnby investment bank",
       "+1 202 555 0101",
     ],
@@ -93,7 +93,7 @@ export const PUBLIC_CASES: PublicCase[] = [
         id: "site",
         label: "Site",
         tone: "adverse",
-        finding: "FCO lists www.quarnby-markets.com",
+        finding: "FCO lists www.quarnby-markets.example",
         points: 15,
       },
     ],
@@ -116,7 +116,7 @@ export const PUBLIC_CASES: PublicCase[] = [
         tone: "adverse",
         finding: "Repeats the FCO name, phone +1 202 555 0101, and website.",
         quote:
-          "Name: The Quarnby Investment Bank (Clone of FCO Authorised firm). Phone: +1 202 555 0101. Website: www.quarnby-markets.com.",
+          "Name: The Quarnby Investment Bank (Clone of FCO Authorised firm). Phone: +1 202 555 0101. Website: www.quarnby-markets.example.",
         url: "https://www.rebate-island.example/en/fco-updates-blacklist-exposing-multiple-unauthorized-forex-platforms/",
         source: "Rebate Island",
       },
@@ -134,10 +134,10 @@ export const PUBLIC_CASES: PublicCase[] = [
     ],
     memo: [
       "The UK Financial Conduct Office (FCO) warning “The Quarnby Investment Bank (Clone of FCO Authorised firm)”, first published 08/05/2025, says: “This firm is not authorised by us but has been contacting people pretending to be an authorised firm. We call this a clone firm.”",
-      "Under “Clone firm details” the same page says “Fraudsters are using the following details to scam people” and lists telephone +1 202 555 0101, email support@quarnby-markets.com, and website www.quarnby-markets.com. The email is published on the page in obfuscated form and decodes to that address.",
+      "Under “Clone firm details” the same page says “Fraudsters are using the following details to scam people” and lists telephone +1 202 555 0101, email support@quarnby-markets.example, and website www.quarnby-markets.example. The email is published on the page in obfuscated form and decodes to that address.",
       "Under “FCO authorised firm details” the page says: “This is the genuine, authorised firm that the fraudsters are claiming to work for. It has no connection with the clone firm.” It names Westhaven Bank Plc, Firm Reference Number 000001, telephone +44 1632 960001, website www.westhavenbank.example.",
       "The page also says that dealing with this firm means no access to the Financial Mediation Office, and no protection from the Financial Recovery Scheme if things go wrong.",
-      "Rebate Island’s article “FCO Updates Blacklist, Exposing Multiple Unauthorized Forex Platforms” (page shows Updated: 2025/10/13) says it compiled the FCO warning list for 6–9 May 2025. In that list it repeats the name, phone +1 202 555 0101, and website www.quarnby-markets.com.",
+      "Rebate Island’s article “FCO Updates Blacklist, Exposing Multiple Unauthorized Forex Platforms” (page shows Updated: 2025/10/13) says it compiled the FCO warning list for 6–9 May 2025. In that list it repeats the name, phone +1 202 555 0101, and website www.quarnby-markets.example.",
       "Consumer Watch Forum, 8 May 2025, “Warnungen der englischen Finanzmarktaufsicht FCO”, lists “The Quarnby Investment Bank (Clone of FCO Authorised firm) (new)” with 08/05/2025 and links to the FCO warning.",
       "No page cited here states a domain registration date, a review-site score, or a payment method. Those tiles stay empty. The number on the gauge is Scam Scout’s advisory score from the tiles that do have a source. It is not an FCO rating and it is not a fraud finding.",
     ],
@@ -262,7 +262,7 @@ export function publicCaseById(id: string): PublicCase {
 
 /** Example picks under the hero search box. Each fills the box; Check then opens its recorded case. */
 export const EXAMPLE_PICKS: Array<{ kind: string; value: string }> = [
-  { kind: "Website", value: "quarnby-markets.com" },
+  { kind: "Website", value: "quarnby-markets.example" },
   { kind: "Phone", value: "+1 202 555 0101" },
   { kind: "Payee", value: "The Quarnby Investment Bank" },
   { kind: "Website", value: "northgate-markets.example" },

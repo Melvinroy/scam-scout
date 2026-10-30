@@ -1,3 +1,4 @@
+import { builtTrademarkViolations, presentationSource, trademarkMatches } from "./trademark-scan.mjs";
 import { execFile, spawn } from "node:child_process";
 import { readFileSync, existsSync, readdirSync, mkdtempSync, openSync, closeSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -10,16 +11,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.chdir(root);
 let failed = false;
 function fail(message) { console.error(message); failed = true; }
-const skip = new Set(["package-lock.json", "docs/trademark-mapping.md", "scripts/release-gate.mjs", "scripts/trademark-denylist.txt",
-  // Detection data, not branding: real brands that phishing lookalikes imitate.
-  "lib/agent/lookalike.ts",
-  // Detection and query rules that must name real regulators and official domains to work.
-  "lib/agent/regulator-queries.ts", "lib/agent/surface.ts", "lib/agent/detect.ts",
-  // Search-query matchers and recorded search routing (not shown on screen) that must name the real sources.
-  "lib/agent/machine.ts", "lib/agent/policy.ts", "fixtures/recorded/demo-cases.ts"]);
+// Inventories document names intentionally; application files have no whole-file exemptions.
+const skip = new Set(["package-lock.json", "docs/trademark-mapping.md", "scripts/trademark-denylist.txt"]);
 const terms = readFileSync("scripts/trademark-denylist.txt", "utf8").split(/\r?\n/).map((term) => term.trim()).filter((term) => term && !term.startsWith("#"));
-const escape = (term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const deny = new RegExp(`\\b(?:${terms.map(escape).join("|")})\\b`, "i");
+function scan(file, content, built = false) {
+  const matches = trademarkMatches(content, terms, { built });
+  if (matches.length) fail(`${file}: forbidden trademarks: ${matches.join(", ")}`);
+}
 const tracked = (await execute("git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z"], { encoding: "utf8" })).stdout.split("\0").filter(Boolean);
 for (const file of tracked) {
   if (skip.has(file) || file.split("/").includes("node_modules") || !existsSync(file)) continue;
@@ -27,12 +25,22 @@ for (const file of tracked) {
   if (bytes.includes(0)) continue;
   let content;
   try { content = new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { continue; }
-  content.split(/\r?\n/).forEach((line, index) => {
-    // SEC severity labels are security-review notation, not a regulator name.
-    const match = line.replace(/\bSEC-(?:CRITICAL|HIGH|MEDIUM|LOW)\b/g, "security-severity").match(deny);
-    if (match) fail(`${file}:${index + 1}: forbidden trademark: ${match[0]}`);
-  });
+  scan(file, presentationSource(file, content));
 }
+for (const { file, term } of builtTrademarkViolations(".next/static", terms)) fail(`${file}: forbidden trademark: ${term}`);
+const replayDirectory = mkdtempSync(join(tmpdir(), "scam-scout-replays-"));
+try {
+  const output = join(replayDirectory, "responses.json");
+  await execute(process.execPath, ["--import", "tsx", "scripts/public-replay-responses.ts", output]);
+  const responses = JSON.parse(readFileSync(output, "utf8"));
+  if (!responses.length) throw new Error("No public replay responses generated");
+  for (const { id, json, sse } of responses) {
+    scan(`replay JSON ${id}`, json);
+    scan(`replay SSE ${id}`, sse);
+  }
+} catch {
+  fail("Public replay response audit failed");
+} finally { rmSync(replayDirectory, { recursive: true, force: true }); }
 const allowed = new Set(["MIT", "Apache-2.0", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Zlib", "0BSD", "BlueOak-1.0.0"]);
 const exceptions = JSON.parse(readFileSync("scripts/license-exceptions.json", "utf8"));
 try {

@@ -1,6 +1,6 @@
 # Fictional demo identities
 
-Recorded evidence and design references are fictionalized; they are not quotations or endorsements by the original sources. Production official-domain checks retain their original values (Unicode escapes in source), with fictional aliases for recorded evidence. Required technology credits remain.
+Recorded evidence and design references are fictionalized; they are not quotations or endorsements by the original sources. Production official-domain checks retain their original values as internal detection data, with fictional aliases only for recorded evidence. Required technology credits remain.
 
 | Old | New |
 | --- | --- |
@@ -48,7 +48,7 @@ Recorded evidence and design references are fictionalized; they are not quotatio
 | Inquirer | Daily Quay |
 | Truebroker.com | brokermirror.example |
 | London Investment Bank | Quarnby Investment Bank |
-| londoninvestment.net | quarnby-markets.com |
+| londoninvestment.net | quarnby-markets.example |
 | London Islamic Investment Bank | Quarnby Ethical Investment Bank |
 | Investment Bank of London | Investment Bank of Quarnby |
 | london-investment-bank | quarnby-investment-bank |

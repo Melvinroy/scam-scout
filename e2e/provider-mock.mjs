@@ -188,7 +188,7 @@ function tavilyBody(pathname, body) {
       usage: { credits },
       results: regulator
         ? [{
-            url: "https://www.fco.example/news/warnings/harbour-desk-clone",
+            url: `https://${body.include_domains[0]}/news/warnings/harbour-desk-clone`,
             title: name,
             content: `${name} is not authorised. We call this a clone firm.`,
           }]

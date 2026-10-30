@@ -1,0 +1,23 @@
+/** Internal lookup data for official sources; never presentation copy. */
+export const OFFICIAL = {
+  warningName: "Financial Conduct Authority",
+  warningHost: "fca.org.uk",
+  warningQuery: "site:fca.org.uk/news/warnings",
+  warningFilter: /fca\.org\.uk\/news\/warnings\//i,
+  warningQueryFilter: /site:fca\.org\.uk\/news\/warnings/i,
+  storageHost: "data.fca.org.uk",
+  storageFilter: /data\.fca\.org\.uk|\/nsm\//i,
+  warningHostFilter: /fca\.org\.uk/i,
+  registerHost: "mas.gov.sg",
+  profileHost: "eservices.mas.gov.sg",
+  profileQuery: "site:eservices.mas.gov.sg/fid/institution",
+  profileQueryFilter: /eservices\.mas\.gov\.sg\/fid/i,
+  profileFilter: /eservices\.mas\.gov\.sg\/fid\/institution\//i,
+  profileDetailFilter: /eservices\.mas\.gov\.sg\/fid\/institution\/detail\//i,
+  investorQuery: "MAS Investor Alert List",
+  redListQuery: "CFTC RED List",
+  redListHosts: ["cftc.gov"],
+  securitiesHosts: ["sec.gov", "investor.gov", "sec.gov.ph"],
+  governmentHosts: ["info.gov.hk", "police.gov.hk", "scamshield.gov.sg"],
+  australiaHosts: ["asic.gov.au"],
+};

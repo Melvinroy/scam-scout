@@ -4,6 +4,7 @@ Captured 21 Oct 2026. This is `/security` and the control map at `/security/map`
 
 ## What we looked at
 
+- [RibbonPay security](https://ribbonpay.example/security). The useful part names a control and says what it does: restricted keys, audit logs, what is stored apart. The PCI and SOC sections belong to a company that was audited.
 - [Vercel security](https://vercel.com/security). The page leads with the product surface, a panel of a few figures, then the controls. The badge row and the “yes, we are certified” FAQ are the part we do not take.
 - [Linecraft security](https://linecraft.example/security). A short headline, then one line per practice. The first lines are SOC 2, GDPR, HIPAA, and ISO 27001. The short line is the pattern. The seals are not.
 - [Nebius trust center](https://nebius.com/trust-center). Three principles, then a catalogue of reports Nebius holds. We take the principle, not the catalogue.
@@ -29,7 +30,7 @@ One machine, one check. The same instrument on `/security` and `/security/map`. 
 
 The machine is an exploded stack of isometric plates drawn in SVG. A plate has a white top, a paper front, and a coloured side in that control’s accent. The mark is from one drawn set (same grid, same stroke). Names are not printed on the plates.
 
-`/security` splits the check into two stacks — how a page is treated, and where it lives — plus a row of smaller plates for evidence, the advisory line, the three references, and disclosure. `/security/map` is one stack of the eight controls. Limits sit on the bench as dials, on both pages.
+`/security` splits the check into two stacks — how a page is treated, and where it lives — plus a row of smaller plates for evidence, the advisory line, the three references, and disclosure. `/security/map` is one stack of the eight controls. Usage checks appear as generic controls on both pages.
 
 Hover or click pulls a plate out. “Step the check”, and the arrow keys, advance. The reading well replaces its paragraph in place. The section title (“How a page is treated.”, “Where it lives.”, and the others) is the well’s kicker while that part is active, so the words stay and the page does not become a stack of headings. `#flow` pulls the first plate of the path. `#disclosure` pulls the disclosure plate. `#limits` still lands on the control map.
 
@@ -37,10 +38,7 @@ On a narrow screen the two stacks sit side by side, smaller, the well moves unde
 
 ## What the pages are allowed to say
 
-Defaults are the unset-env values in `quotaDefaults` and `reportRetentionMs`.
-
-- A live run needs a Google session and a bot-check cookie. Missing either, it is denied.
-- Defaults: each account, network and device has a small live-check allowance, with an hourly pace. Reservations roll back together. A shared pool covers hosted checks, and each hosted check reserves its share before it runs. When that reservation will not fit, the route plays a recording. An account that has used its own allowance is refused. Recorded cases stay open.
+- Protected operations enforce authentication and authorization.
 - Account numbers and card numbers are refused. A valid phone can go through. Emails, key-shaped tokens, and national-id shapes are redacted before a provider call. Private, metadata, and credentialled URLs are blocked before a fetch.
 - A fetched page is wrapped as data after instruction-shaped phrases are stripped. A flag whose quote is not in the cited text is dropped. A memo that points at a missing source is dropped. Points and the level are decided in code.
 - Memos are rewritten out of “is a scam” and “committed fraud”, and they carry the decision-support line. A low score with low confidence is labelled manual review. The stamp does not move money.

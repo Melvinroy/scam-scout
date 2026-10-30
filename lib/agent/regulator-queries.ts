@@ -1,3 +1,4 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import { domainToASCII } from "node:url";
 import { officialSiteQueries } from "@/lib/agent/surface";
 import type { NormalizedEntity } from "@/lib/types";
@@ -46,8 +47,8 @@ export function skipsOpenWeb(entity: NormalizedEntity): boolean {
 function fcaWarnings(quoted: string): RegulatorQuery {
   return {
     action: "search_regulator",
-    query: `${quoted} site:fca.org.uk/news/warnings`,
-    includeDomains: ["fca.org.uk"],
+    query: `${quoted} ${OFFICIAL.warningQuery}`,
+    includeDomains: [OFFICIAL.warningHost],
     depth: "basic",
   };
 }
@@ -57,8 +58,8 @@ function masFid(entity: NormalizedEntity): RegulatorQuery {
   const quoted = officialSiteQueries(domain).map((form) => `"${form}"`).join(" OR ");
   return {
     action: "search_regulator",
-    query: `${quoted} site:eservices.mas.gov.sg/fid/institution`,
-    includeDomains: ["eservices.mas.gov.sg"],
+    query: `${quoted} ${OFFICIAL.profileQuery}`,
+    includeDomains: [OFFICIAL.profileHost],
     depth: "basic",
   };
 }
@@ -76,12 +77,12 @@ export function regulatorFloorQueries(entity: NormalizedEntity): RegulatorQuery[
   if (kind === "phone" || kind === "name") return queries;
   if (kind === "sg") {
     queries.push(
-      { action: "search_regulator", query: `${quoted} MAS Investor Alert List`, includeDomains: ["mas.gov.sg"], depth: "basic" },
+      { action: "search_regulator", query: `${quoted} ${OFFICIAL.investorQuery}`, includeDomains: [OFFICIAL.registerHost], depth: "basic" },
       masFid(entity),
       {
         action: "search_regulator",
         query: `${quoted} government scam alert`,
-        includeDomains: ["info.gov.hk", "police.gov.hk", "scamshield.gov.sg"],
+        includeDomains: OFFICIAL.governmentHosts,
         depth: "basic",
       },
     );
@@ -91,18 +92,18 @@ export function regulatorFloorQueries(entity: NormalizedEntity): RegulatorQuery[
     queries.push({
       action: "search_regulator",
       query: `${quoted} government scam alert`,
-      includeDomains: ["info.gov.hk", "police.gov.hk", "scamshield.gov.sg"],
+      includeDomains: OFFICIAL.governmentHosts,
       depth: "basic",
     });
     return queries;
   }
   if (kind === "au") {
-    queries.push({ action: "search_regulator", query: `${quoted} investor alert`, includeDomains: ["asic.gov.au"], depth: "basic" });
+    queries.push({ action: "search_regulator", query: `${quoted} investor alert`, includeDomains: OFFICIAL.australiaHosts, depth: "basic" });
     return queries;
   }
   queries.push(
-    { action: "search_regulator", query: `${quoted} investor alert`, includeDomains: ["sec.gov", "investor.gov", "sec.gov.ph"], depth: "basic" },
-    { action: "search_regulator", query: `${quoted} CFTC RED List`, includeDomains: ["cftc.gov"], depth: "basic" },
+    { action: "search_regulator", query: `${quoted} investor alert`, includeDomains: OFFICIAL.securitiesHosts, depth: "basic" },
+    { action: "search_regulator", query: `${quoted} ${OFFICIAL.redListQuery}`, includeDomains: OFFICIAL.redListHosts, depth: "basic" },
   );
   return queries;
 }

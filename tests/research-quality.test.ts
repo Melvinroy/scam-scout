@@ -1,3 +1,4 @@
+import { OFFICIAL } from "@/lib/agent/regulator-data";
 import { describe, expect, it } from "vitest";
 import { adoptedDomain } from "@/lib/agent/adopt";
 import { Budget } from "@/lib/agent/budget";
@@ -18,35 +19,35 @@ describe("targeted regulator research", () => {
     const london = regulatorFloorQueries(normalizeInput("The Quarnby Investment Bank"));
     expect(london).toHaveLength(1);
     expect(london[0]?.query).toContain('"The Quarnby Investment Bank"');
-    expect(london[0]?.query).toContain("site:\u0066ca.org.uk/news/warnings");
-    expect(london[0]?.includeDomains).toEqual(["\u0066ca.org.uk"]);
+    expect(london[0]?.query).toContain(OFFICIAL.warningQuery);
+    expect(london[0]?.includeDomains).toEqual([OFFICIAL.warningHost]);
 
     const northgate = regulatorFloorQueries(normalizeInput("northgate-markets.example"));
-    expect(northgate.map((query) => query.includeDomains.join())).toEqual(["\u0066ca.org.uk", "\u0073ec.gov,investor.gov,\u0073ec.gov.ph", "\u0063ftc.gov"]);
+    expect(northgate.map((query) => query.includeDomains.join())).toEqual([OFFICIAL.warningHost, OFFICIAL.securitiesHosts.join(), OFFICIAL.redListHosts[0]]);
     expect(northgate.every((query) => query.depth === "basic" && query.query.includes('"northgate-markets.example"'))).toBe(true);
-    expect(northgate.some((query) => query.query.includes("\u0046CA Warning List"))).toBe(false);
+    expect(northgate.some((query) => query.query.includes(`${OFFICIAL.warningHost.split(".")[0].toUpperCase()} Warning List`))).toBe(false);
 
     const hk = regulatorFloorQueries(normalizeInput("香港郵政電子郵件.com"));
     expect(hk.some((query) => query.query.includes('"香港郵政電子郵件.com"') && query.query.includes('"xn--5nqx41a7vhqjjzy7bca609hbif.com"'))).toBe(true);
-    expect(hk.some((query) => query.includeDomains.join() === "\u0069nfo.gov.hk,\u0070olice.gov.hk,\u0073camshield.gov.sg")).toBe(true);
+    expect(hk.some((query) => query.includeDomains.join() === OFFICIAL.governmentHosts.join())).toBe(true);
 
     const harbourbank = regulatorFloorQueries(normalizeInput("harbourbank.com.sg"));
-    const fid = harbourbank.find((query) => query.query.includes("eservices.\u006das.gov.sg/fid/institution"));
-    expect(fid?.includeDomains).toEqual(["eservices.\u006das.gov.sg"]);
+    const fid = harbourbank.find((query) => query.query.includes(`${OFFICIAL.profileHost}/fid/institution`));
+    expect(fid?.includeDomains).toEqual([OFFICIAL.profileHost]);
     expect(fid?.query).toContain('"harbourbank.com.sg"');
     expect(fid?.query).toContain('"harbourbank.com"');
     const cedarbank = regulatorFloorQueries(normalizeInput("cedarbank.com.sg"));
-    const cedarbankFid = cedarbank.find((query) => query.query.includes("eservices.\u006das.gov.sg/fid/institution"));
+    const cedarbankFid = cedarbank.find((query) => query.query.includes(`${OFFICIAL.profileHost}/fid/institution`));
     expect(cedarbankFid?.query).toContain('"cedarbank.com.sg"');
     expect(cedarbankFid?.query).toContain('"cedarbank.com"');
     expect(cedarbankFid?.query).not.toContain("HARBOURBANK");
-    expect(harbourbank.some((query) => query.includeDomains.includes("\u0066ca.org.uk"))).toBe(true);
-    expect(harbourbank.some((query) => query.includeDomains.includes("\u006das.gov.sg") && query.includeDomains.includes("eservices.\u006das.gov.sg"))).toBe(false);
+    expect(harbourbank.some((query) => query.includeDomains.includes(OFFICIAL.warningHost))).toBe(true);
+    expect(harbourbank.some((query) => query.includeDomains.includes(OFFICIAL.registerHost) && query.includeDomains.includes(OFFICIAL.profileHost))).toBe(false);
     const phone = regulatorFloorQueries(normalizeInput("+65 8123 4409"));
     expect(phone).toHaveLength(1);
-    expect(phone[0]?.query).toContain("site:\u0066ca.org.uk/news/warnings");
+    expect(phone[0]?.query).toContain(OFFICIAL.warningQuery);
     for (const input of ["payloop.example", "shopwisp.example", "broker.com.au", "unlisted.sg"]) {
-      expect(regulatorFloorQueries(normalizeInput(input)).some((query) => query.query.includes("site:\u0066ca.org.uk/news/warnings"))).toBe(true);
+      expect(regulatorFloorQueries(normalizeInput(input)).some((query) => query.query.includes(OFFICIAL.warningQuery))).toBe(true);
     }
   });
 
@@ -144,8 +145,8 @@ describe("targeted regulator research", () => {
     }], entity)).toBeNull();
     expect(adoptedDomain([{
       title: "Tied",
-      text: "The Quarnby Investment Bank uses www.quarnby-markets.com for its site.",
-    }], entity)).toBe("quarnby-markets.com");
+      text: "The Quarnby Investment Bank uses www.quarnby-markets.example for its site.",
+    }], entity)).toBe("quarnby-markets.example");
   });
 
   it.each(RECORDED_DEMOS.map((demo) => [demo.input, demo] as const))(
@@ -155,10 +156,10 @@ describe("targeted regulator research", () => {
       const sheet = sheetFromView(view);
       expect(report.verdict.level, JSON.stringify(report.verdict)).toBe(demo.expected);
       expect(report.costs.tavily_credits).toBeLessThanOrEqual(8);
-      expect(requests.some((request) => request.query.includes("site:\u0066ca.org.uk/news/warnings"))).toBe(true);
+      expect(requests.some((request) => request.query.includes(OFFICIAL.warningQuery))).toBe(true);
       expect(requests.some((request) => request.query.includes(`"${demo.input}"`))).toBe(true);
       if (demo.input === "northgate-markets.example" || demo.input === "SHOPWISP.EXAMPLE" || demo.input === "tradepebble.example") {
-        expect(requests.some((request) => request.includeDomains?.includes("\u0073ec.gov.ph"))).toBe(true);
+        expect(requests.some((request) => request.includeDomains?.includes(OFFICIAL.securitiesHosts[2]))).toBe(true);
       }
       if (demo.expected === "Not enough evidence") {
         expect(report.verdict.unverified).toBe(true);
@@ -219,7 +220,7 @@ describe("targeted regulator research", () => {
         expect(report.evidence.some((item) => item.url.includes("coinharbour.example"))).toBe(true);
       }
       if (demo.input === "harbourbank.com.sg") {
-        expect(requests.some((request) => request.query.includes('"harbourbank.com.sg"') && request.query.includes('"harbourbank.com"') && request.query.includes("site:eservices.\u006das.gov.sg/fid/institution") && request.includeDomains?.join() === "eservices.\u006das.gov.sg")).toBe(true);
+        expect(requests.some((request) => request.query.includes('"harbourbank.com.sg"') && request.query.includes('"harbourbank.com"') && request.query.includes(OFFICIAL.profileQuery) && request.includeDomains?.join() === OFFICIAL.profileHost)).toBe(true);
         expect(extracts.some((urls) => urls.includes(HARBOURBANK_INSTITUTION_PAGE.url))).toBe(true);
         expect(report.costs.tavily_credits).toBe(8);
         expect(report.evidence.some((item) => item.url.includes("/fid/institution/detail/900002-HARBOURBANK-BANK-LTD"))).toBe(true);
