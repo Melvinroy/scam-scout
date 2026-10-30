@@ -1,0 +1,49 @@
+{
+  "search": [
+    {
+      "url": "https://eservices.hma.example/fid/institution/detail/900001-HARBOURBANK-DIGITAL-EXCHANGE-PTE-LTD",
+      "title": "Financial Institutions Directory",
+      "content": "Home IconDirectory HomeBack IconBack\n\n# HARBOURBANK DIGITAL EXCHANGE PTE. LTD.\n\nIncorporated in Singapore\n\n## Licence Type/Status\n\n### Recognised Market Operator\n\n## Key Personnel\n\n### Chief Executive Officer\n\n|  |  |\n --- |\n| Key Personnel Icon | ALEX EXAMPLE |\n\n## contact\n\n|  |\n\n|  |\n| +65 0000 0001 |\n| 1 FICTIONAL HARBOUR, LEVEL 40, HARBOURBANK HOUSE, 000000 | [...] A Singapore Government Agency Website\n\nHow to identify\n\nOfficial website links end with .gov.sg\n\nGovernment agencies communicate via .gov.sg websites (e.g. go.gov.sg/open). Trusted websites\n\nSecure websites use HTTPS\n\nLook for a lock () or https:// as an added precaution. Share sensitive information only on official, secure websites.\n\nHMA Logo\n\n EMAIL-SUBSCRIPTION\n FAQs\n CONTACT INFORMATION\n FEEDBACK\n\nPrint LogoMinus IconPlus Icon [...] Warning: Scammers may impersonate HMA-r"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution/detail/900002-HARBOURBANK-BANK-LTD",
+      "title": "Financial Institutions Directory",
+      "content": "Warning: Scammers may impersonate HMA-regulated financial institutions to promote investments or solicit funds, often with unsolicited offers of high returns and little or no risk. Verify the institution's identity and deal only through official channels before transferring money. If in doubt, check its official contact details on its website or the HMA Financial Institutions Directory.\n\nFind a financial institution, licence type or activity in Singapore.\n\nSee All Financial Institutions [...] A Singapore Government Agency Website\n\nHow to identify\n\nOfficial website links end with .gov.sg\n\nGovernment agencies communicate via .gov.sg websites (e.g. go.gov.sg/open). Trusted websites\n\nSecure websites use HTTPS\n\nLook for a lock () or https:// as an added precaution. Share sensitive information only on official, secure websites.\n\nHMA Logo\n\n EMAIL-SUBSCRIPTION\n FAQs\n CONTACT INFORMATION\n FEEDBAC"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution/detail/900003-HARBOURBANK-TRUSTEE-LIMITED",
+      "title": "Financial Institutions Directory",
+      "content": "Home IconDirectory HomeBack IconBack\n\n# HARBOURBANK TRUSTEE LIMITED\n\nIncorporated in Singapore\n\n## Licence Type/Status\n\n### Approved CIS Trustee\n\n### Licensed Trust Company\n\n## Key Personnel\n\n### Resident Manager\n\n|  |  |\n --- |\n| Key Personnel Icon | JANE EXAMPLE |\n| Key Personnel Icon | ROBIN EXAMPLE |\n\n## contact\n\n|  |\n\n|  |\n| +65 0000 0002 |\n| 1 FICTIONAL HARBOUR, LEVEL 44, HARBOURBANK HOUSE, 000000 | [...] A Singapore Government Agency Website\n\nHow to identify\n\nOfficial website links end with .gov.sg\n\nGovernment agencies communicate via .gov.sg websites (e.g. go.gov.sg/open). Trusted websites\n\nSecure websites use HTTPS\n\nLook for a lock () or https:// as an added precaution. Share sensitive information only on official, secure websites.\n\nHMA Logo\n\n EMAIL-SUBSCRIPTION\n FAQs\n CONTACT INFORMATION\n FEEDBACK\n\nPrint LogoMinus IconPlus Icon [...] Warning: Sc"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution?category=Designated+Payment+System+Settlement+Institution",
+      "title": "Financial Institutions Directory",
+      "content": "Designated Payment System Settlement Institution"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution?term=FBS",
+      "title": "Financial Institutions Directory",
+      "content": "FBS"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution?category=Local%2520Bank",
+      "title": "Financial Institutions Directory",
+      "content": "Local Bank"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution?category=Approved+CIS+Trustee",
+      "title": "Financial Institutions Directory",
+      "content": "Approved CIS Trustee"
+    },
+    {
+      "url": "https://eservices.hma.example/fid/institution?term=harbourbank+bank",
+      "title": "Financial Institutions Directory",
+      "content": "harbourbank bank"
+    }
+  ],
+  "extract": {
+    "url": "https://eservices.hma.example/fid/institution/detail/900002-HARBOURBANK-BANK-LTD",
+    "title": "Financial Institutions Directory",
+    "content": "Print LogoMinus IconPlus Icon\n\nWarning: Scammers may impersonate HMA-regulated financial institutions to promote investments or solicit funds, often with unsolicited offers of high returns and little or no risk. Verify the institution's identity and deal only through official channels before transferring money. If in doubt, check its official contact details on its website or the HMA Financial Institutions Directory.\n\nFind a financial institution, licence type or activity in Singapore.\n\nSee All Financial Institutions\n\nHome IconDirectory HomeBack IconBack\n\n# HARBOURBANK BANK LTD.\n\nIncorporated in Singapore\n\n## Licence Type/Status\n\n### Designated Payment System Settlement Institution [...] #### Arranging of Life Policies, other than for Reinsurance\n\n### Exempt Trust Company\n\n#### Bank\n\n### Local Bank\n\n### SGS Primary Dealer\n\n## Key Personnel\n\n### Chairman\n\n|  |  |\n --- |\n| Key Personnel Icon | Pet"
+  }
+}

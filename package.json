@@ -1,0 +1,58 @@
+{
+  "name": "scam-scout",
+  "version": "0.9.0",
+  "private": true,
+  "description": "Scam Scout — cited open-web investigations of merchants, websites, phones and payees.",
+  "license": "MIT",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . && node scripts/release-gate.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "captures:promote": "tsx scripts/promote-capture.ts"
+  },
+  "dependencies": {
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/postprocessing": "^3.2.1",
+    "bcryptjs": "3.0.3",
+    "libphonenumber-js": "1.13.15",
+    "next": "16.4.2",
+    "next-auth": "5.0.0-beta.32",
+    "postprocessing": "^6.39.5",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1",
+    "tldts": "7.4.19",
+    "undici": "7.30.1",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/extensions": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
+    "@playwright/test": "^1.56.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.19.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "draco3dgltf": "^1.5.7",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.4.2",
+    "fengari": "0.1.5",
+    "license-checker-rseidelsohn": "4.4.2",
+    "lighthouse": "13.5.0",
+    "meshoptimizer": "^0.22.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12"
+  }
+}

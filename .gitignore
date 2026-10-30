@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+dist
+.env
+.env.local
+.env.*.local
+data
+*.log
+tsconfig.tsbuildinfo
+.DS_Store
+coverage
+playwright-report
+test-results
+blob-report
+.vercel
+astra-review.out
+
+# Local secrets never live in the repo
+scam-scout-secrets/
+*.env
